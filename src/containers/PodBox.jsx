@@ -2,25 +2,27 @@ import React from 'react';
 import Feed from 'rss-to-json';
 // import Header from '../components.Header.jsx';
 // import Footer from '../'
-// import PodList from '../components/PodList.jsx'
+import PodList from '../components/PodList.jsx'
 
 class PodBox extends React.Component {
   constructor(props){
     super(props);
-    this.podcasts = [];
     this.state = {
-      feeds: [
-      "http://rss.earwolf.com/comedy-bang-bang",
-      "http://rss.earwolf.com/with-special-guest-lauren-lapkus"],
+      feeds: [],
       podcasts: [],
-      search:"",
+      search: null
     }
+    this.handleChange = this.handleChange.bind(this);
+    this.feedGetter = this.feedGetter.bind(this);
+    this.podGetter = this.podGetter.bind(this);
   }
 
 
-  componentDidMount(){
+  podGetter(){
+    console.log('podgetter ACTIVATE');
     let allThePodcasts = [];
     this.state.feeds.forEach((feedUrl) => {
+      console.log('this is happening');
       Feed.load(feedUrl, function(err, rss){
         var podcast = {
           title: rss.title,
@@ -28,19 +30,17 @@ class PodBox extends React.Component {
           episodes: rss.items
         };
         allThePodcasts.push(podcast);
-        console.log(allThePodcasts);
       });
     });
     this.setState({
       podcasts: allThePodcasts
     })
+    console.log(this.state.podcasts);
   };
 
   handleChange(event){
     var podSearch = event.target.value;
-    this.setState({
-      search: podSearch
-    })
+    this.setState({search: podSearch})
   };
 
   prepFeedSearch(searchString){
@@ -49,34 +49,33 @@ class PodBox extends React.Component {
   };
 
   feedGetter(){
-    var allTheFeeds = this.state.feeds;
     var urlSearch = this.prepFeedSearch(this.state.search);
-    var url = "https://itunes.apple.com/search?term=" + urlSearch + "&entity=podcast/json";
+    var url = "https://itunes.apple.com/search?term=" + urlSearch + "&entity=podcast";
     var request = new XMLHttpRequest();
     request.open('GET', url);
     request.addEventListener('load', ()=> {
       if(request.status === 200){
         var jsonString = request.responseText;
         var data = JSON.parse(jsonString);
-        console.log(data);
-        debugger;
-        var newFeed = data.results.feedUrl;
-        allTheFeeds.push(newFeed);}
-    request.send();
-    console.log(allTheFeeds);
-    this.setState({
-      feeds: allTheFeeds
-    })
-  })}
+        var newFeed = data.results[0].feedUrl;
+        var updatedFeeds = this.state.feeds.concat([newFeed]);
+        this.setState({
+          feeds: updatedFeeds
+        })}
+        this.podGetter();
+      });
+      request.send();
+    }
 
 
     render(){
       return(
         <div className='pod-box'>
-        <input className='add-pod' onChange={this.handleChange.bind(this)}/>
-        <button className='add-button' onClick={this.feedGetter.bind(this)}>Add Podcast</button>
+          <input className='add-pod' onChange={this.handleChange}/>
+          <button className='add-button' onClick={this.feedGetter}>Add Podcast</button>
+          <PodList podcasts={this.state.podcasts}/>
         </div>
-        )
+      )
     }
 
   }
